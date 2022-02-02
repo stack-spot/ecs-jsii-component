@@ -1,0 +1,27 @@
+{
+  "env": {
+    "es2021": true,
+    "jest": true,
+    "node": true
+  },
+  "extends": [
+    "airbnb-base"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 13,
+    "sourceType": "module"
+  },
+  "plugins": [
+    "@typescript-eslint"
+  ],
+  "rules": {
+    "no-new": "off"
+  },
+  "ignorePatterns": [
+    "lib/**/*.d.ts",
+    "lib/**/*.js",
+    "test/**/*.d.ts",
+    "test/**/*.js"
+  ]
+}
