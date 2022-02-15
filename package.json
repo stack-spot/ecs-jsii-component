@@ -1,6 +1,6 @@
 {
   "name": "@stackspot/cdk-env-container",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Component to create a container environment.",
   "keywords": [
     "aws-cdk",
