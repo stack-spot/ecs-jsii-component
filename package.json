@@ -1,13 +1,13 @@
 {
   "name": "@stackspot/cdk-env-container",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Component to create a container environment.",
   "keywords": [
     "aws-cdk",
     "container"
   ],
   "bugs": "https://github.com/stack-spot/container-env-jsii-component/issues",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": {
     "name": "StackSpot",
     "email": "contact@stackspot.com"
