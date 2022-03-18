@@ -1,6 +1,6 @@
 {
   "name": "@stackspot/cdk-env-container",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "description": "Component to create a container environment.",
   "keywords": [
     "aws-cdk",
@@ -29,6 +29,7 @@
     "test:watch": "npm test -- --watch"
   },
   "dependencies": {
+    "@stackspot/cdk-core": "^0.1.2",
     "aws-cdk-lib": "^2.0.0",
     "constructs": "^10.0.0"
   },
@@ -61,8 +62,12 @@
       }
     },
     "testEnvironment": "node",
-    "roots": ["<rootDir>/test"],
-    "testMatch": ["**/*.test.ts"],
+    "roots": [
+      "<rootDir>/test"
+    ],
+    "testMatch": [
+      "**/*.test.ts"
+    ],
     "transform": {
       "^.+\\.tsx?$": "ts-jest"
     },
