@@ -8,7 +8,7 @@
 [![nuget-downloads][badge-nuget-downloads]][nuget-package]
 [![license][badge-license]][license]
 
-Component to create a container environment.
+Component for managing an ECS cluster.
 
 ## How to use
 
@@ -19,7 +19,7 @@ Below are all languages supported by the AWS CDK.
 Install the dependency:
 
 ```sh
-dotnet add package StackSpot.Env.Container
+dotnet add package StackSpot.Cdk.Ecs
 ```
 
 Import the construct into your project, for example:
@@ -28,7 +28,7 @@ Import the construct into your project, for example:
 using Amazon.CDK;
 using Amazon.CDK.AWS.EC2;
 using Constructs;
-using StackSpot.Env.Container;
+using StackSpot.Cdk.Ecs;
 
 namespace MyStack
 {
@@ -36,16 +36,11 @@ namespace MyStack
     {
         internal MyStack(Construct scope, string id, IStackProps props = null) : base(scope, id, props)
         {
-            string[] subnetIds = {
-                "subnet-xxxxxxxxxxxxxxxxx",
-                "subnet-xxxxxxxxxxxxxxxxx",
-                "subnet-xxxxxxxxxxxxxxxxx"
-            };
+            Vpc vpc = new Vpc(this, "VPC");
 
-            ContainerEnvComponent environment = new ContainerEnvComponent(this, "MyEcs", new ContainerEnvComponentProps{
-                SubnetIds = subnetIds,
-                SubnetType = SubnetType.PRIVATE_ISOLATED,
-                VpcId = "vpc-xxxxxxxxxxxxxxxxx"
+            Ecs ecs = new Ecs(this, "MyEcs", new EcsCreateProps{
+                ClusterName = "MyCluster",
+                Vpc = vpc
             });
         }
     }
@@ -69,53 +64,28 @@ Not yet supported.
 Install the dependency:
 
 ```sh
-npm install --save @stackspot/cdk-env-container
+npm install --save @stackspot/cdk-ecs
 ```
 
 Import the construct into your project, for example:
 
 ```javascript
 const { Stack } = require('aws-cdk-lib');
-const { SubnetType } = require('aws-cdk-lib/aws-ec2');
-const { EcsCreate } = require('@stackspot/cdk-env-container');
-const { VpcEnvComponent } = require('@stackspot/cdk-env-vpc');
-
+const { Vpc } = require('aws-cdk-lib/aws-ec2');
+const { Ecs } = require('@stackspot/cdk-ecs');
 
 class MyStack extends Stack {
   constructor(scope, id, props) {
     super(scope, id, props);
 
-    const vpcEnv = new VpcEnvComponent(this, 'MyVpc', {
-      subnetsIds: [
-        'subnet-xxx',
-        'subnet-xxx',
-        'subnet-xxx',
-      ],
-      subnetsType: SubnetType.PRIVATE_ISOLATED,
-      vpcId: 'vpc-xxx',
+    const ecs = new Ecs(this, 'MyCluster', {
+      clusterName: 'MyCluster',
+      vpc: new Vpc(this, 'MyVpc'),
     });
-
-    const ecsCluster = new EcsCreate(this, 'MyCluster', {
-      clusterName: 'xxxx',
-      containerInsights: false,
-      subnets: vpcEnv.subnets,
-      vpc: vpcEnv.vpc,
-    });
-
-    ecsCluster.addTaskDefinition(this,
-      {
-        vpcId: vpcEnv.vpc.vpcId,
-        containerName: 'xxx',
-        containerImage: 'amazon-registry-xxx/image-xxxx',
-        cpu: '256',
-        memoryMiB: '512',
-        containerPort: 80,
-        hostPort: 80,
-      });
   }
 }
 
-module.exports = { MyStack }
+module.exports = { MyStack };
 ```
 
 ### Python
@@ -127,49 +97,25 @@ Not yet supported.
 Install the dependency:
 
 ```sh
-npm install --save @stackspot/cdk-env-container
+npm install --save @stackspot/cdk-ecs
 ```
 
 Import the construct into your project, for example:
 
 ```typescript
 import { Stack, StackProps } from 'aws-cdk-lib';
-import { SubnetType } from 'aws-cdk-lib/aws-ec2';
+import { Vpc } from 'aws-cdk-lib/aws-ec2';
 import { Construct } from 'constructs';
-import { EcsCreate } from '@stackspot/cdk-env-container';
-import { VpcEnvComponent } from '@stackspot/cdk-env-vpc';
+import { Ecs } from '@stackspot/cdk-ecs';
 
 class MyStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    const vpcEnv = new VpcEnvComponent(this, 'MyVpc', {
-      subnetsIds: [
-        'subnet-xxx',
-        'subnet-xxx',
-        'subnet-xxx',
-      ],
-      subnetsType: SubnetType.PRIVATE_ISOLATED,
-      vpcId: 'vpc-xxx',
+    const ecs = new Ecs(this, 'MyCluster', {
+      clusterName: 'MyCluster',
+      vpc: new Vpc(this, 'MyVpc'),
     });
-
-    const ecsCluster = new EcsCreate(this, 'MyCluster', {
-      clusterName: 'xxxx',
-      containerInsights: false,
-      subnets: vpcEnv.subnets,
-      vpc: vpcEnv.vpc,
-    });
-
-    ecsCluster.addTaskDefinition(this,
-      {
-        vpcId: vpcEnv.vpc.vpcId,
-        containerName: 'xxx',
-        containerImage: 'amazon-registry-xxx/image-xxxx',
-        cpu: '256',
-        memoryMiB: '512',
-        containerPort: 80,
-        hostPort: 80,
-      });
   }
 }
 
@@ -178,117 +124,124 @@ export default MyStack;
 
 ## Construct Props
 
-| Name                 | Type                                        | Description                                                                            |
-| -------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------- |
-| clusterName          | string                                      | The name for the cluster. Default: ContainerEnvComponentCluster.                       |
-| containerInsights    | boolean                                     | If true CloudWatch Container Insights will be enabled for the cluster. Default: true.  |
-| subnets              | [SubnetSelection][aws-cdk-subnet-selection] | The subnets to be used.                                                                |
-| vpc                  | [iVpc][aws-cdk-ivpc]                        | The VPC to be used.           |
-| subnetType              | [SubnetType][aws-cdk-subnet-type] | Select all subnets of the given type.. Default: PRIVATE_ISOLATED  |                                                         |
+| Name               | Type                     | Description                                                                            |
+| ------------------ | ------------------------ | -------------------------------------------------------------------------------------- |
+| clusterName        | string                   | The name for the cluster.                                                              |
+| containerInsights? | boolean                  | If true CloudWatch Container Insights will be enabled for the cluster. Default: false. |
+| vpc                | [IVpc][aws-cdk-ec2-ivpc] | The VPC to be used.                                                                    |
 
-## Methods
+## Another Props
 
-| Name  | Description  |
-| -------------------|--------------------------------------------------------------------|
-| addTaskDefinition(scope, id, props) | Create a task definition |
-| addTaskDefinitionFromStackECS(scope, id, props) | Static method. Create a task definition on an existing cluster |
+### TaskDefinitionCreateProps
 
-## Methods Props
-
-| Name  | Type | Description  |
-| ----------------| ------------- | --------------------------------------------------------------------|
-| containerName | string| The Name of the Container to be executed. |
-| containerImage | string| The Registry of the Image to be used. |
-| cpu | string  | The CPU to be used by Container. Default: 256 |
-| memoryMiB  | string | The Memory in MB to be used by Container. Default: 512|
-| containerPort    | number                                     | The Port to be useb by Container. Default: 80  |
-| hostPort   | number                                   | The Port to be used by Host. Default: 80 |
-| subnets              | [SubnetSelection][aws-cdk-subnet-selection] | The subnets to be used.                                                             |
-| subnetType              | [SubnetType][aws-cdk-subnet-type] | Select all subnets of the given type.. Default: PRIVATE_ISOLATED  |
-| vpc                  | [iVpc][aws-cdk-ivpc]                        | The VPC to be used. 
-| publicIp                 | boolean    | If will be assigned a public IP. Default: false                                         |
-
+| Name           | Type                                  | Description                                         |
+| -------------- | ------------------------------------- | --------------------------------------------------- |
+| containerImage | string                                | The container image to deploy.                      |
+| containerName  | string                                | The name of the container within the cluster.       |
+| containerPort  | number                                | The container port.                                 |
+| cpu            | string                                | The amount of CPU to use.                           |
+| hostPort       | number                                | The host port.                                      |
+| memoryMiB      | string                                | The amount of memory in MiB to use.                 |
+| publicIp       | boolean                               | Represents whether the cluster will have public IP. |
+| subnetType     | [SubnetType][aws-cdk-ec2-subnet-type] | The type of subnet to use.                          |
+| vpc            | [IVpc][aws-cdk-ec2-ivpc]              | The VPC to use.                                     |
 
 ## Properties
 
-| Name                | Type                                                         | Description                               |
-| ------------------- | ------------------------------------------------------------ | ----------------------------------------- |
-| cluster             | [Cluster][aws-cdk-cluster]                                   | Cluster that will be created.             |
+| Name    | Type                           | Description                   |
+| ------- | ------------------------------ | ----------------------------- |
+| cluster | [Cluster][aws-cdk-ecs-cluster] | Cluster that will be created. |
+
+## Methods
+
+| Name                                                            | Description                                                         |
+| --------------------------------------------------------------- | ------------------------------------------------------------------- |
+| addTaskDefinition(scope, props)                                 | Add a task definition to the AWS ECS cluster.                       |
+| static addTaskDefinitionFromStackEcs(scope, clusterName, props) | Add a task definition to the AWS ECS cluster from the cluster name. |
+
+### addTaskDefinition(scope, props)
+
+```typescript
+public addTaskDefinition(scope: Construct, props: TaskDefinitionCreateProps): EcsRunTask
+```
+
+_Parameters_
+
+- **scope** [Construct][aws-cdk-construct]
+- **props** [TaskDefinitionCreateProps](#taskdefinitioncreateprops)
+
+_Returns_
+
+- [EcsRunTask][aws-cdk-step-functions-tasks-ecs-run-task]
+
+Add a task definition to the AWS ECS cluster.
+
+### static addTaskDefinitionFromStackEcs(scope, clusterName, props)
+
+```typescript
+public static addTaskDefinitionFromStackEcs(scope: Construct, clusterName: string, props: TaskDefinitionCreateProps): EcsRunTask
+```
+
+_Parameters_
+
+- **scope** [Contruct][aws-cdk-construct]
+- **clusterName** string
+- **props** [TaskDefinitionCreateProps](#taskdefinitioncreateprops)
+
+_Returns_
+
+- [EcsRunTask][aws-cdk-step-functions-tasks-ecs-run-task]
+
+Add a task definition to the AWS ECS cluster from the cluster name.
 
 ## IAM Least privilege
 
 ```json
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Action": [
-                "cloudformation:Describe*",
-                "cloudformation:List*",
-                "cloudformation:Get*"
-            ],
-            "Resource": "*",
-            "Effect": "Allow"
-        },
-        {
-            "Action": "s3:*",
-            "Resource": "arn:aws:s3:::cdktoolkit-stagingbucket-*",
-            "Effect": "Allow"
-        },
-        {
-            "Action": [
-                "ssm:GetParameters",
-                "ecs:DescribeClusters",
-                "ecs:CreateCluster",
-                "ecs:DeleteCluster",
-                "ec2:CreateTags",
-                "ec2:CreateVpc",
-                "ec2:CreateSubnet",
-                "ec2:CreateRouteTable",
-                "ec2:CreateRoute",
-                "ec2:CreateInternetGateway",
-                "ec2:CreateNatGateway",
-                "ec2:DescribeVpcs",
-                "ec2:DescribeNatGateways",
-                "ec2:DescribeAddresses",
-                "ec2:DescribeSubnets",
-                "ec2:DescribeRouteTables",
-                "ec2:DescribeAvailabilityZones",
-                "ec2:DescribeInternetGateways",
-                "ec2:AttachInternetGateway",
-                "ec2:allocateAddress",
-                "ec2:AssociateRouteTable",
-                "ec2:ModifyVpcAttribute",
-                "ec2:ModifySubnetAttribute",
-                "ec2:ReplaceRoute",
-                "ec2:DeleteRoute",
-                "ec2:DeleteVpc",
-                "ec2:DeleteTags",
-                "ec2:DeleteSubnet",
-                "ec2:DeleteInternetGateway",
-                "ec2:DeleteRouteTable",
-                "ec2:DetachInternetGateway",
-                "ec2:DeleteNatGateway",
-                "ec2:releaseAddress",
-                "ec2:DisassociateRouteTable"
-            ],
-            "Resource": "*",
-            "Effect": "Allow"
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AllocateAddress",
+        "ec2:AssociateRouteTable",
+        "ec2:AttachInternetGateway",
+        "ec2:CreateInternetGateway",
+        "ec2:CreateNatGateway",
+        "ec2:CreateRoute",
+        "ec2:CreateRouteTable",
+        "ec2:CreateSubnet",
+        "ec2:CreateTags",
+        "ec2:CreateVpc",
+        "ec2:DeleteInternetGateway",
+        "ec2:DeleteNatGateway",
+        "ec2:DeleteRoute",
+        "ec2:DeleteRouteTable",
+        "ec2:DeleteSubnet",
+        "ec2:DeleteTags",
+        "ec2:DeleteVpc",
+        "ec2:DescribeAddresses",
+        "ec2:DescribeAvailabilityZones",
+        "ec2:DescribeInternetGateways",
+        "ec2:DescribeNatGateways",
+        "ec2:DescribeRouteTables",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVpcs",
+        "ec2:DetachInternetGateway",
+        "ec2:DisassociateRouteTable",
+        "ec2:ModifySubnetAttribute",
+        "ec2:ModifyVpcAttribute",
+        "ec2:ReleaseAddress",
+        "ec2:ReplaceRoute",
+        "ecs:CreateCluster",
+        "ecs:DeleteCluster",
+        "ecs:DescribeClusters",
+        "ssm:GetParameters"
+      ],
+      "Resource": "*"
+    }
+  ]
 }
-```
-
-Usage:
-
-```sh
-cdk bootstrap \
-  --public-access-block-configuration false \
-  --trust <account-id> \
-  --cloudformation-execution-policies arn:aws:iam::<account-id>:policy/<policy-name> \
-  aws://<account-id>/<region>
-
-cdk deploy
 ```
 
 ## Development
@@ -297,33 +250,32 @@ cdk deploy
 
 - [EditorConfig][editorconfig] (Optional)
 - [Git][git]
-- [Node.js 16][nodejs]
+- [Node.js][nodejs] 17
 
 ### Setup
 
 ```sh
-cd container-env-jsii-component
+cd ecs-jsii-component
 npm install
 ```
 
-You are done! Happy coding!
-
 [aws-cdk]: https://aws.amazon.com/cdk
-[aws-cdk-cluster]: https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ecs.Cluster.html
-[aws-cdk-subnet-selection]: https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ec2.SubnetSelection.html
-[aws-cdk-subnet-type]: https://docs.aws.amazon.com/cdk/api/v1/docs/@aws-cdk_aws-ec2.SubnetType.html
-[aws-cdk-ivpc]: https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ec2.IVpc.html
-[badge-aws-cdk]: https://img.shields.io/github/package-json/dependency-version/stack-spot/container-env-jsii-component/aws-cdk-lib
-[badge-jsii]: https://img.shields.io/github/package-json/dependency-version/stack-spot/container-env-jsii-component/dev/jsii
-[badge-license]: https://img.shields.io/github/license/stack-spot/container-env-jsii-component
-[badge-npm-downloads]: https://img.shields.io/npm/dt/@stackspot/cdk-env-container?label=downloads%20%28npm%29
-[badge-npm-version]: https://img.shields.io/npm/v/@stackspot/cdk-env-container
-[badge-nuget-downloads]: https://img.shields.io/nuget/dt/StackSpot.Env.Container?label=downloads%20%28NuGet%29
-[badge-nuget-version]: https://img.shields.io/nuget/vpre/StackSpot.Env.Container
+[aws-cdk-construct]: https://docs.aws.amazon.com/cdk/api/v2/docs/constructs.Construct.html
+[aws-cdk-ec2-ivpc]: https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ec2.IVpc.html
+[aws-cdk-ec2-subnet-type]: https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ec2.SubnetType.html
+[aws-cdk-ecs-cluster]: https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ecs.Cluster.html
+[aws-cdk-step-functions-tasks-ecs-run-task]: https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_stepfunctions_tasks.EcsRunTask.html
+[badge-aws-cdk]: https://img.shields.io/github/package-json/dependency-version/stack-spot/ecs-jsii-component/dev/aws-cdk-lib
+[badge-jsii]: https://img.shields.io/github/package-json/dependency-version/stack-spot/ecs-jsii-component/dev/jsii
+[badge-license]: https://img.shields.io/github/license/stack-spot/ecs-jsii-component
+[badge-npm-downloads]: https://img.shields.io/npm/dt/@stackspot/cdk-ecs?label=downloads%20%28npm%29
+[badge-npm-version]: https://img.shields.io/npm/v/@stackspot/cdk-ecs
+[badge-nuget-downloads]: https://img.shields.io/nuget/dt/StackSpot.Cdk.Ecs?label=downloads%20%28NuGet%29
+[badge-nuget-version]: https://img.shields.io/nuget/vpre/StackSpot.Cdk.Ecs
 [editorconfig]: https://editorconfig.org/
 [git]: https://git-scm.com/downloads
 [jsii]: https://aws.github.io/jsii/
-[license]: https://github.com/stack-spot/container-env-jsii-component/blob/main/LICENSE
+[license]: https://github.com/stack-spot/ecs-jsii-component/blob/main/LICENSE
 [nodejs]: https://nodejs.org/en/download/
-[npm-package]: https://www.npmjs.com/package/@stackspot/cdk-env-container
-[nuget-package]: https://www.nuget.org/packages/StackSpot.Env.Container
+[npm-package]: https://www.npmjs.com/package/@stackspot/cdk-ecs
+[nuget-package]: https://www.nuget.org/packages/StackSpot.Cdk.Ecs
